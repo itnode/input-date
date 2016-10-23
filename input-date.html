@@ -1,0 +1,839 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+
+    Replace a single input with three inputs for year, month, day
+
+Example:
+
+    <input is="input-date" type="text" name="xxxe"  value="2015-08-22" />
+
+@demo
+-->
+<dom-module id="input-date">
+
+  <template>
+  <style>
+    :host {
+        display: inline-block;
+        position: relative;
+        padding: 0 0 3px 0;
+    }
+
+    input {
+        text-align: center;
+        margin: 0;
+    }
+
+    input[type=text] {
+        margin: 0 2px;
+    }
+
+    #month,
+    #day { 
+        width: 2.2em;
+    }
+
+    #year {
+    
+        width: 3.2em;
+    }
+
+    small {
+
+        color: #999;
+    }
+
+    #opencard {
+
+        font-family: 'icons', 'Open Sans', sans-serif;
+        color: #000;
+        font-size: 15px;
+        margin: 0;
+        padding: 0;
+        display: inline-block;
+
+    }
+
+    #card div.header {
+
+        display: block;
+        border-top: 1px solid #999;
+        text-align: center;
+       clear: both;
+        color: #fff;
+        padding: 10px;        
+    }
+
+    #card div.footer {
+
+        display: flex;
+        flex-direction: row;
+        border-bottom: 1px solid #999;
+        text-align: center;
+        clear: both;
+        color: #fff;
+  
+    }
+
+    
+    #card div.footer a {
+
+        display: block;
+        flex: 1 1 auto;
+        padding: 5px 10px;
+        cursor: pointer;
+        color: #fff;
+    }
+
+
+    #card span {
+        display: block;
+        padding: 5px;
+        width: 3.5em;
+        float: left;
+        font-size: 12px;
+        text-align: center;
+        color: #eee;
+    }
+
+    #card em {
+        display: block;
+        padding: 5px;
+        width: 3.5em;
+        float: left;
+        font-size: 12px;
+        text-align: center;
+        color: #eee;
+        font-style: normal;
+        color:#999;
+   }
+
+    #card span:hover {
+
+        color: #fff;
+        background: #000;
+        cursor: pointer;
+    }
+
+    #card span.other {
+
+        color: #666;
+    }
+
+    #card span.current {
+
+        background: #ccc;
+        color: #111;
+    }
+
+    #card span.sunday {
+
+        font-weight: bold;
+    }
+
+    #card {
+
+        position: absolute;
+        top: 25px;
+        left: 0;
+        background: #3d464d;
+        box-shadow: 3px 3px 5px #eee;
+        display: none;
+        clear: both;
+        z-index: 10000;
+        width: 24.5em;
+        padding: 0 
+    }
+
+ 
+
+    button {
+        margin: 0 5px 0 0 !important;
+        padding: 5px 2px;
+        background: transparent;
+        color: #999;
+    }
+
+  </style>
+
+        <div id="main">
+            <input type="hidden" name="[[name]]" value="{{output}}" />
+            <div id="inputs"></div>
+            <button id="opencard" type="button">&#xe00b;</button>
+            <div id="card">
+            </div>
+        </div>
+
+  </template>
+
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'input-date',
+
+    properties: {
+
+      /**
+       * `value-name` is the unique name of the calc
+       */
+        output: {
+            type: String,
+        },
+
+        value: {
+
+            type: String,
+        },
+
+        day: {
+            type: Number,
+            notify: true,
+          },
+
+        month: {
+            type: Number,
+            notify: true,
+              },
+
+        year: {
+            type: Number,
+            notify: true,
+           
+        },
+
+        autofocus: {
+
+            type: Boolean,
+            value: false,
+        },
+
+        // Jump to the next input if input valid and the right length   
+        jump: {
+            type: Boolean,
+            value: true,
+        },
+
+        formatView: {
+
+            type: 'String',
+            value: 'DD-MM-YYYY', 
+        },
+
+        formatYmd: {
+            type: Boolean,
+            value: true,
+        },
+
+        formatDmy: {
+            type: Boolean,
+            value: false,
+        }
+    },
+
+
+
+    // Element Lifecycle
+
+    ready: function() {
+      // `ready` is called after all elements have been configured, but
+      // propagates bottom-up. This element's children are ready, but parents
+      // are not.
+      //
+      // This is the point where you should make modifications to the DOM (when
+      // necessary), or kick off any processes the element wants to perform.
+    },
+
+    attached: function() {
+      // `attached` fires once the element and its parents have been inserted
+      // into a document.
+      //
+      // This is a good place to perform any work related to your element's
+      // visual state or active behavior (measuring sizes, beginning animations,
+      // loading resources, etc).
+            
+        var these = this;
+      
+
+        
+        //    <input id="day" autofocus="{{autofocus}}" type="text" size="2" placeholder="dd"  value="{{day::input}}" />
+        //    <span>{{separator_first}}</span>
+        //    <input id="month" type="text" size="2" placeholder="mm"  value="{{month::input}}" />
+        //   <span>{{separator_second}}</span>
+        //    <input id="year"  type="text" size="4" placeholder="yyyy" value="{{year::input}}" />
+
+
+        these.field_day   = document.createElement('input');
+        these.field_day.type = 'text';
+        these.field_day.placeholder = 'dd';
+        these.field_day.size = 2;
+        these.field_day.id = "day";
+
+        these.field_month   = document.createElement('input');
+        these.field_month.type = 'text';
+        these.field_month.placeholder = 'mm';
+        these.field_month.size = 2;
+        these.field_month.id = 'month';
+
+        these.field_year   = document.createElement('input');
+        these.field_year.type = 'text';
+        these.field_year.placeholder = 'yyyy';
+        these.field_year.size = 4;
+        these.field_year.id = 'year';
+
+
+
+
+        if ( these.value ) {
+
+            var date = Date.parse(these.value) ;
+
+            if ( !isNaN(date) ) { 
+
+                var local_date = new Date(date);
+                these.date = new Date(local_date.setTime( local_date.getTime() + local_date.getTimezoneOffset()*60*1000 ));
+
+                these.field_day.value   = these.format(these.date.getDate());
+                these.field_month.value = these.format(these.date.getMonth() + 1);
+                these.field_year.value  = these.format(these.date.getFullYear());
+
+                these.initValue();
+            }
+        }
+
+
+        if ( these.autofocus === true ) {
+            these.field_day.focus();
+            these.field_day.setSelectionRange(0, these.field_day.value.length);
+        }
+
+
+        these.field_day.addEventListener('focus', function() {
+            these.field_day.focus();
+            these.field_day.setSelectionRange(0, these.field_day.value.length);
+ 
+        });
+
+        var formatViewRegex = /([ymd]+)([./-]+)([ymd]+)([./-]+)([ymd]+)/i;
+
+        var formatViewMatch = formatViewRegex.exec(these.formatView);
+
+        // Separatoren
+        these.separator_first  = formatViewMatch[2];
+        these.separator_second = formatViewMatch[4];
+
+        // Felder
+        these.field_first   = formatViewMatch[1].substr(0,1).toLowerCase();
+        these.field_second  = formatViewMatch[3].substr(0,1).toLowerCase();
+        these.field_third   = formatViewMatch[5].substr(0,1).toLowerCase();
+
+
+        if ( these.field_first === 'y' ) {
+
+            Polymer.dom(these.$.main).insertBefore(these.field_year, these.$.inputs);
+
+            if ( these.autofocus) { 
+                these.focusYear();
+            }
+
+        } else if ( these.field_first === 'd' ) {
+
+
+            Polymer.dom(these.$.main).insertBefore(these.field_day, these.$.inputs);
+            
+            if ( these.autofocus) { 
+                these.focusDay();
+            } 
+
+        } else {
+
+            Polymer.dom(these.$.main).insertBefore(these.field_month, these.$.inputs);
+            
+            if ( these.autofocus) { 
+                these.focusMonth();
+            }
+         }
+
+        var separator_first = document.createElement('em');
+        separator_first.innerHTML = these.separator_first;
+        Polymer.dom(these.$.main).insertBefore(separator_first, these.$.inputs);
+
+        if ( these.field_second === 'y' ) {
+            Polymer.dom(these.$.main).insertBefore(these.field_year, these.$.inputs);
+        } else if ( these.field_second === 'd' ) {
+            Polymer.dom(these.$.main).insertBefore(these.field_day, these.$.inputs);
+        } else {
+            Polymer.dom(these.$.main).insertBefore(these.field_month, these.$.inputs);
+        }
+
+        var separator_second = document.createElement('em');
+        separator_second.innerHTML = these.separator_second;
+        Polymer.dom(these.$.main).insertBefore(separator_second, these.$.inputs);
+
+        if ( these.field_third === 'y' ) {
+            Polymer.dom(these.$.main).insertBefore(these.field_year, these.$.inputs);
+        } else if ( these.field_third === 'd' ) {
+            Polymer.dom(these.$.main).insertBefore(these.field_day, these.$.inputs);
+        } else {
+            Polymer.dom(these.$.main).insertBefore(these.field_month, these.$.inputs);
+        }
+
+        Polymer.dom(these.$.main).removeChild(these.$.inputs);
+
+        // Order for view
+
+        these.$.opencard.addEventListener('click', these.opencard.bind(these));
+
+        these.field_day.addEventListener("input",   these.updateValueDay.bind(these, true) ); 
+        these.field_month.addEventListener("input", these.updateValueMonth.bind(these, true) ); 
+        these.field_year.addEventListener("input",  these.updateValueYear.bind(these, true) ); 
+    
+        these.field_day.addEventListener('blur',    these.updateValueDay.bind(these, false) );
+        these.field_month.addEventListener('blur',  these.updateValueMonth.bind(these, false) );
+        these.field_year.addEventListener('blur',   these.updateValueYear.bind(these, false) );
+     
+    },
+
+    detached: function() {
+      // The analog to `attached`, `detached` fires when the element has been
+      // removed from a document.
+      //
+      // Use this to clean up anything you did in `attached`.
+        
+
+        these.field_day.removeEventListener("input",   these.updateValueDay.bind(these) ); 
+        these.field_month.removeEventListener("input", these.updateValueMonth.bind(these) ); 
+        these.field_year.removeEventListener("input",  these.updateValueYear.bind(these) ); 
+
+    },
+
+    opencard: function() {
+
+        var these =  this;
+        these.$.card.style.display = 'block';
+
+        these.render_month(these.output);
+
+    },
+
+    closecard: function() {
+
+        var these = this;
+        these.$.card.style.display = 'none';
+    },
+
+    render_month: function(to) {
+
+
+        var these = this;
+        var container = these.$.card;
+
+        var now;
+
+        if ( to === undefined ) {
+
+            // Use the current date
+            now = moment();
+
+        } else {
+
+            // Use the related day
+            now = moment(to);
+        }
+
+        var current = now.clone();
+
+        these.$.card.innerHTML = "";
+
+        var footer = document.createElement('div');
+        footer.className = 'footer';
+        Polymer.dom(these.$.card).appendChild(footer);
+      
+        var yprev = document.createElement('a');
+        yprev.innerHTML = "««";
+        yprev.addEventListener('click', function() {
+            these.render_month(these_month.subtract(1,'years'));
+        });
+
+        Polymer.dom(footer).appendChild(yprev);
+  
+        var prev = document.createElement('a');
+        prev.innerHTML = "«";
+        prev.addEventListener('click', function() {
+            these.render_month(these_month.subtract(1,'months'));
+        });
+
+        Polymer.dom(footer).appendChild(prev);
+ 
+        var reset = document.createElement('a');
+        reset.innerHTML = "Reset";
+        reset.addEventListener('click', function() {
+        
+  
+                these.field_day.value   = "";
+                these.field_month.value = "";
+                these.field_year.value  = "";
+                these.output        = undefined;
+                these.closecard();
+        });
+
+        var today = document.createElement('a');
+        today.innerHTML = "Today";
+        today.addEventListener('click', function() {
+        
+                var tody = moment();
+  
+                these.field_day.value   = tody.format('DD');
+                these.field_month.value = tody.format('MM');
+                these.field_year.value  = tody.year();
+                these.output        = tody.format("YYYY-MM-DD");
+                these.closecard();
+        });
+
+        Polymer.dom(footer).appendChild(reset);
+        Polymer.dom(footer).appendChild(today);
+           
+        var next = document.createElement('a');
+          next.innerHTML = "»";
+          next.addEventListener('click', function() {
+            these.render_month(these_month.add(1,'months'));
+        });
+
+        Polymer.dom(footer).appendChild(next);
+  
+        var ynext = document.createElement('a');
+          ynext.innerHTML = "»»";
+          ynext.addEventListener('click', function() {
+            these.render_month(these_month.add(1,'years'));
+        });
+
+        Polymer.dom(footer).appendChild(ynext);
+
+
+        // 1. Start with the first day of the month
+        now.date(1);
+       
+        var these_month = now.clone();
+
+        // 2. Get day of the week 
+        var dow = now.day();
+
+        // 3. Adjust day start to first monday
+        if ( dow === 0 ) {
+            now.subtract(6, 'days');
+        }
+
+        if ( dow > 1 ) {
+            now.subtract(dow - 1, 'days');
+        }
+
+        ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach( function(d) {
+
+            var day = document.createElement('em');
+            day.innerHTML = d;
+            day.className = "header";
+            Polymer.dom(these.$.card).appendChild(day);
+        })
+
+        // render days until next month's first sunday 
+
+        while ( !(now.day() === 1 &&  now.month() === current.clone().add(1, 'months').month() )) {
+
+            var day = document.createElement('span');
+
+            day.className = 'normal';
+
+                      
+            if (now.day() === 0 ) {
+                day.className = 'sunday';
+            }
+
+            if (now.month() !== current.month() ) {
+                day.className = 'other';
+            }
+
+            if (now.format("YYYY-MM-DD") === current.format('YYYY-MM-DD') ) {
+                day.className = 'current';
+            }
+            
+            day.innerHTML = now.format("DD");
+
+           var caller = function(dt) {
+            
+               var private = dt.clone().format("YYYY-MM-DD");
+
+               return function() {
+
+                    var splitted = private.split("-");
+    
+                    these.field_day.value   = splitted[2];
+                    these.field_month.value = splitted[1];
+                    these.field_year.value  = splitted[0];
+                    these.output        = private;
+                    these.closecard();
+               };
+           };
+                
+
+            day.addEventListener('click', caller(now)); 
+
+            Polymer.dom(these.$.card).appendChild(day);
+
+            now.add(1,'days');
+        }
+
+        var header = document.createElement('div');
+        header.innerHTML = current.format('MMMM YYYY');
+        header.className = 'header';
+        header.addEventListener('click', these.closecard.bind(these));
+        Polymer.dom(these.$.card).appendChild(header);
+
+
+
+    },
+
+    initValue: function() {
+        var these = this;
+        these.output = these.field_year.value + "-" + these.format(these.field_month.value) + "-" + these.format(these.field_day.value);
+    },
+
+    setValue: function(year,month,day) {
+
+        var these = this;
+
+
+        if ( month && year && day ) { 
+        
+            these.output = year + "-" + these.format(month) + "-" + these.format(day);
+
+        } else {
+
+            these.output = undefined;
+        }
+
+    },
+
+    focusMonth: function() {
+
+        var these = this;
+        
+        var input_month = these.field_month;
+        input_month.focus();
+        input_month.setSelectionRange(0, input_month.value.length)
+ 
+    },
+
+    focusDay: function() {
+
+        var these = this;
+
+        var input_day = these.field_day;
+        input_day.focus();
+        input_day.setSelectionRange(0, input_day.value.length)
+     },
+
+    focusYear: function() {
+
+        var these = this;
+        
+        var input_year = these.field_year;
+        input_year.focus();
+        input_year.setSelectionRange(0, input_year.value.length)
+     },
+
+    nextField: function(current) {
+
+        var these = this;
+
+        if ( these.field_first === current ) { 
+
+            if ( these.field_second === 'y' ) { 
+                these.focusYear() ;
+            }
+
+            if ( these.field_second === 'm' ) {
+                these.focusMonth();
+            }
+
+            if ( these.field_second === 'd' ) {
+                these.focusDay();
+            }                    
+
+        } 
+
+        if ( these.field_second === current ) {
+
+            if ( these.field_third === 'y' ) { 
+                these.focusYear() ;
+            }
+
+            if ( these.field_third === 'm' ) {
+                these.focusMonth();
+            }
+
+            if ( these.field_third === 'd' ) {
+                these.focusDay();
+            }                    
+
+
+        }
+
+        if ( these.field_third === current ) {
+
+            // TODO Jump next?
+        }
+    },
+
+
+    updateValueDay: function(jump) {
+        var these = this;
+
+        var day = these.field_day.value;
+
+
+        // Eingabe in DD einstellig > 3 formatieren, jump
+        // Eingabe in DD zweistellig =< 31 formatieren, jump
+
+        if ( day.length > 2 ) {
+            day = day.slice(0,2);
+        }
+
+        if ( day > 31 ) {
+            day = 31;
+        }
+
+        if ( day.toString().length == 2 || day > 3  ) {
+                
+            day = these.format(day);
+            these.field_day.value = day;
+        } 
+       
+        if ( day.toString().length === 2 && these.jump && jump ) {
+
+            these.nextField('d');
+        }
+       
+        these.setValue( these.field_year.value, these.field_month.value, day) ;
+    },
+
+    updateValueMonth: function(jump) {
+        var these = this;
+
+        var month = these.field_month.value;
+    
+        // Eingabe in MM einstellig > 2 → jump 
+        // Eingabe in MM zweistellig =< 12 → jump 
+        // Eingabe in MM zweistellig > 12 oder dreistellig, auf 12 reduzieren 
+
+
+        if ( month > 2 ) {
+
+            month = these.format(month);
+            these.field_month.value = month;
+        } 
+
+        if ( month.length === 2 && month < 10 ) {
+
+            month = these.format(month)+"";
+            these.field_month.value = month;
+        }
+
+        if ( month > 12 ) {
+
+            month = "12";
+            these.field_month.value = month;
+        }
+
+        if ( month.toString().length === 2 && these.jump && jump ) {
+                
+            these.nextField('m');
+        }
+
+
+        these.setValue( these.field_year.value, these.field_month.value, these.field_day.value) ;
+    },
+
+    updateValueYear: function(jump) {
+        var these = this;
+
+        /*
+            Eingabe in YYYY vierstellig → jump 
+            Eingabe in YY zweistellig, Tab (blur)→ auf YYYY umwandeln und jump
+        */            
+
+        var year = these.field_year.value;
+
+
+        if ( year.length > 4 ) {
+
+            year = year.slice(0,4);
+            these.field_year.value = year;
+        }
+
+        if ( year.length == 2 && !jump ) {
+
+            // bei zweistelliger Eingabe prüfen ob 1900 oder 2000 addiert werden muss
+            // 2000 wird addiert wenn zweistellig kleiner als das aktuelle zweistellige jahr + 3 ist
+            // ansonsten wird 1900 addiert
+
+            var ytody = moment();
+            
+            var ys = ytody.format('YY');
+ 
+            // blur/tab 
+            if ( year < (parseInt(ys) + 3)  ) { 
+                year =  parseInt(year) + 2000;
+                these.field_year.value = year;                                                                                
+
+            } else {
+
+                year =  parseInt(year) + 1900;
+                these.field_year.value = year;                                                                                
+            }
+        }
+
+        if ( year.toString().length == 4 &&  these.jump && jump ) {
+
+            these.nextField('y');
+        }
+             
+        these.setValue(these.field_year.value, these.field_month.value, these.field_day.value) ;
+    },
+
+
+    format: function(x) {
+
+        var i = parseInt(x || 0);
+
+        if ( isNaN(i) ) {
+
+            return "";
+
+        } else if ( i > 9 ) {
+
+            return i;
+
+        } else {
+
+            return "0" + i;
+        }
+
+    }
+
+
+  });
+
+
+</script>
