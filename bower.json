@@ -2,7 +2,7 @@
   "name": "input-date",
   "version": "1.0.0",
   "authors": [
-    "Anonymous <anonymous@example.com>"
+    "Jens Gassmann <jg@gassmann.it>"
   ],
   "description": "Replace a single input with three inputs for year,month,day",
   "keywords": [
